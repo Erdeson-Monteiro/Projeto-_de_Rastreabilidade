@@ -1,0 +1,17 @@
+# Configuração local do banco de dados (contém credenciais)
+includes/config.php
+
+# Logs gerados em runtime
+*.log
+pages/peso_log.txt
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
+
+# Dependências (se usar Composer futuramente)
+vendor/
+
+# Arquivos de ambiente
+.env
+.env.local

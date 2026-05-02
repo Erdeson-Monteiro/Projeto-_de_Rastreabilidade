@@ -6,8 +6,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
 
-    // Simulação de autenticação (substitua pela sua lógica real)
-    if ($email === "usuario@exemplo.com" && $password === "senha123") {
+    // TODO: substituir por autenticação real via banco de dados
+    if ($email === "admin@exemplo.com" && $password === "trocar_antes_de_usar") {
         // Armazena dados na sessão
         $_SESSION['logged_in'] = true;
         $_SESSION['user_email'] = $email;

@@ -28,11 +28,11 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-// Configurações WiFi
+// Configurações WiFi — altere para sua rede
 const char* ssid = "SUA_REDE_WIFI";
 const char* password = "SUA_SENHA_WIFI";
 
-// Configurações do servidor
+// Configurações do servidor — altere para o IP do seu computador com XAMPP
 const char* serverUrl = "http://192.168.1.100/projeto_rastreabilidade/api/rfid/esp32.php";
 
 // Pinos do RC522

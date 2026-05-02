@@ -1,11 +1,11 @@
 <?php
 // config.php
 // Configuração da conexão com o banco de dados MySQL
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "ifmabov";
-$port = 3306;
+$servername = "localhost";       // Endereço do servidor MySQL
+$username = "root";              // Usuário do banco de dados
+$password = "SUA_SENHA_AQUI";   // Senha do banco de dados
+$dbname = "ifmabov";             // Nome do banco de dados
+$port = 3306;                    // Porta do MySQL
 
 try {
     // Criar conexão PDO
