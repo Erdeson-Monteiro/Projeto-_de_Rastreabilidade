@@ -1,4 +1,8 @@
-# 🐄 IFMA Bov — Sistema de Rastreabilidade Bovina com RFID
+<p align="center">
+  <img src="assets/img/logo-ifma-bov.jpg" alt="Logo IFMA Bov" width="180">
+</p>
+
+<h1 align="center">IFMA Bov — Sistema de Rastreabilidade Bovina com RFID</h1>
 
 Sistema de rastreamento de bovinos que une **hardware (ESP32 + leitor RFID RC522)** e uma **aplicação web em PHP/MySQL** para identificar animais por brinco RFID e acompanhar cadastro, pesagens e vacinações.
 
@@ -117,7 +121,7 @@ Acesse **http://localhost:8080**. O banco já é criado com dados de exemplo.
    | `esp32_rfid_simples.ino` + `config_esp32.h` | Tudo configurável no `.h` (display, LED e debug podem ser ligados ou desligados) |
 
 4. Preencha o nome e a senha da sua rede WiFi (`SUA_REDE_WIFI` / `SUA_SENHA_WIFI`).
-5. Ajuste o IP do computador onde o sistema está rodando. Para trocar em todos os firmwares de uma vez:
+5. Troque `SEU_IP` pelo IP do computador onde o sistema está rodando. Para trocar em todos os firmwares de uma vez:
    ```bash
    ./atualizar_ip.sh 192.168.0.42
    ```
@@ -141,7 +145,7 @@ curl -d "tag_id=A1B2C3D4" http://localhost:8080/projeto_rastreabilidade/api/rfid
 ├── api/rfid/
 │   ├── esp32.php              # recebe as leituras do ESP32
 │   └── read.php               # estado atual para a tela de monitoramento
-├── assets/                    # CSS, JS e imagens
+├── assets/                    # CSS, JS e imagens (inclui o logo do projeto)
 ├── db/
 │   └── database.sql           # criação do banco "ifmabov", das tabelas e dados de exemplo
 ├── docker/                    # imagem Apache + PHP usada pelo docker-compose

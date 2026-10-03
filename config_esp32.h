@@ -19,7 +19,7 @@ const char* WIFI_PASSWORD = "SUA_SENHA_WIFI";      // Senha da sua rede WiFi
 // ========================================
 // Altere o IP abaixo para o IP do seu computador onde está rodando o XAMPP
 // Para descobrir o IP, abra o terminal e digite: ipconfig (Windows) ou ifconfig (Linux/Mac)
-const char* SERVER_URL = "http://192.168.1.100/projeto_rastreabilidade/api/rfid/esp32.php";
+const char* SERVER_URL = "http://SEU_IP/projeto_rastreabilidade/api/rfid/esp32.php";
 
 // ========================================
 // CONFIGURAÇÕES DE PINOS

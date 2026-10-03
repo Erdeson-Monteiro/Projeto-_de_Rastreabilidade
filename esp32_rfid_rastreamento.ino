@@ -49,7 +49,7 @@
  const char* password = "SUA_SENHA_WIFI";     // Senha da sua rede WiFi
  
  // Configurações do servidor
- const char* serverUrl = "http://192.168.1.100/projeto_rastreabilidade/api/rfid/esp32.php";
+ const char* serverUrl = "http://SEU_IP/projeto_rastreabilidade/api/rfid/esp32.php";
  // Altere o IP acima para o IP do seu servidor XAMPP
  
  // Pinos do RC522

@@ -5,7 +5,8 @@
 
 if [ $# -eq 0 ]; then
     echo "Uso: $0 NOVO_IP"
-    echo "Exemplo: $0 192.168.1.100"
+    echo "Exemplo: $0 192.168.0.42      (XAMPP)"
+    echo "         $0 192.168.0.42:8080 (Docker)"
     exit 1
 fi
 
@@ -22,6 +23,7 @@ ARQUIVOS=(
 
 # Padrões para substituir
 PADROES=(
+    "http://SEU_IP"
     "http://192.168.1.100"
     "http://192.168.0.100"
     "http://192.168.1.1"
