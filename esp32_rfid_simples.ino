@@ -11,8 +11,7 @@
  * BIBLIOTECAS NECESSÁRIAS:
  * - MFRC522 (por GithubCommunity)
  * - ArduinoJson (por Benoit Blanchon)
- * - Adafruit GFX Library
- * - Adafruit SSD1306
+ * - Adafruit GFX Library e Adafruit SSD1306 (somente com USE_DISPLAY true)
  */
 
 #include "config_esp32.h"
@@ -50,7 +49,8 @@ bool connectToWiFi() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+  // Espera até WIFI_TIMEOUT_MS (verificando a cada 500 ms)
+  while (WiFi.status() != WL_CONNECTED && attempts < WIFI_TIMEOUT_MS / 500) {
     delay(500);
     if (ENABLE_DEBUG) {
       Serial.print(".");
@@ -162,6 +162,7 @@ bool sendToServer(String tagId) {
           displayMessage("Tag Nao", "Cadastrada!");
           #endif
         }
+        http.end();
         return true;
       } else {
         if (ENABLE_DEBUG) {
@@ -306,9 +307,11 @@ void loop() {
       }
     } else {
       #if USE_DISPLAY
-      displayMessage("WiFi Falhou!", "Reinicie Sistema");
+      displayMessage("WiFi Falhou!", "Nova tentativa 30s");
       #endif
-      delay(10000);
+      // Esgotou as tentativas: espera 30 s e recomeça, em vez de desistir para sempre
+      delay(30000);
+      reconnectAttempts = 0;
       return;
     }
   }
@@ -316,7 +319,12 @@ void loop() {
   // Lê tag RFID
   String tagId = readRFID();
   
-  if (tagId != "" && tagId != lastTagId && (millis() - lastReadTime) > READ_INTERVAL_MS) {
+  // Tag diferente: aceita após READ_INTERVAL_MS. Mesma tag (o animal passou de novo):
+  // aceita após SAME_TAG_INTERVAL, para não registrar a mesma leitura várias vezes
+  unsigned long elapsed = millis() - lastReadTime;
+  bool novaTag = (tagId != lastTagId && elapsed > READ_INTERVAL_MS);
+  bool mesmaTagDeNovo = (tagId == lastTagId && elapsed > SAME_TAG_INTERVAL);
+  if (tagId != "" && (novaTag || mesmaTagDeNovo)) {
     if (ENABLE_DEBUG) {
       Serial.println("Tag lida: " + tagId);
     }

@@ -44,12 +44,13 @@
 #include <Adafruit_SSD1306.h>
  
  
- // Configurações WiFi — altere para sua rede
- const char* ssid = "SUA_REDE_WIFI";
- const char* password = "SUA_SENHA_WIFI";
-
- // Configurações do servidor — altere para o IP do seu computador com XAMPP
+ // Configurações WiFi
+ const char* ssid = "SUA_REDE_WIFI";          // Nome da sua rede WiFi
+ const char* password = "SUA_SENHA_WIFI";     // Senha da sua rede WiFi
+ 
+ // Configurações do servidor
  const char* serverUrl = "http://192.168.1.100/projeto_rastreabilidade/api/rfid/esp32.php";
+ // Altere o IP acima para o IP do seu servidor XAMPP
  
  // Pinos do RC522
  #define RST_PIN         22    // D22 - RST
@@ -72,6 +73,7 @@
  String lastTagId = "";
  unsigned long lastReadTime = 0;
  const unsigned long READ_INTERVAL = 2000; // Intervalo mínimo entre leituras (2 segundos)
+ const unsigned long SAME_TAG_INTERVAL = 10000; // Mesma tag só é registrada de novo após 10 segundos
  bool wifiConnected = false;
  int reconnectAttempts = 0;
  const int MAX_RECONNECT_ATTEMPTS = 10;
@@ -171,6 +173,7 @@
          } else {
            displayMessage("Tag Nao", "Cadastrada!");
          }
+         http.end();
          return true;
        } else {
          Serial.println("Erro no servidor: " + String(doc["message"].as<const char*>()));
@@ -268,8 +271,10 @@
          delay(5000);
        }
      } else {
-       displayMessage("WiFi Falhou!", "Reinicie Sistema");
-       delay(10000);
+       // Esgotou as tentativas: espera 30 s e recomeça, em vez de desistir para sempre
+       displayMessage("WiFi Falhou!", "Nova tentativa 30s");
+       delay(30000);
+       reconnectAttempts = 0;
        return;
      }
    }
@@ -277,7 +282,12 @@
    // Lê tag RFID
    String tagId = readRFID();
    
-   if (tagId != "" && tagId != lastTagId && (millis() - lastReadTime) > READ_INTERVAL) {
+   // Tag diferente: aceita após READ_INTERVAL. Mesma tag (o animal passou de novo):
+   // aceita após SAME_TAG_INTERVAL, para não registrar a mesma leitura várias vezes
+   unsigned long elapsed = millis() - lastReadTime;
+   bool novaTag = (tagId != lastTagId && elapsed > READ_INTERVAL);
+   bool mesmaTagDeNovo = (tagId == lastTagId && elapsed > SAME_TAG_INTERVAL);
+   if (tagId != "" && (novaTag || mesmaTagDeNovo)) {
      Serial.println("Tag lida: " + tagId);
      lastTagId = tagId;
      lastReadTime = millis();

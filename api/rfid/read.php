@@ -7,22 +7,23 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
+// Mude para true para registrar cada passo em read_log.txt (depuração).
+// Desligado, só os erros são registrados: a tela de monitoramento consulta
+// esta API a cada 2 segundos e o log crescia vários MB.
+define('READ_DEBUG', false);
+
 // Função para log
 function logDebug($message) {
+    if (!READ_DEBUG && stripos($message, 'erro') === false) {
+        return;
+    }
     $logFile = __DIR__ . '/read_log.txt';
     $timestamp = date('Y-m-d H:i:s');
     $logMessage = "[$timestamp] $message\n";
     
-    // Verifica se o diretório existe
-    if (!is_dir(__DIR__)) {
-        mkdir(__DIR__, 0777, true);
-    }
-    
-    // Tenta escrever no arquivo
-    if (file_put_contents($logFile, $logMessage, FILE_APPEND) === false) {
-        // Se não conseguir escrever, tenta criar o arquivo
-        file_put_contents($logFile, $logMessage);
-    }
+    // Grava no arquivo de log; se não houver permissão, ignora em silêncio
+    // (um aviso do PHP aqui quebraria o JSON da resposta)
+    @file_put_contents($logFile, $logMessage, FILE_APPEND);
 }
 
 try {
@@ -36,7 +37,7 @@ try {
     // Verifica se o arquivo de configuração existe
     $config_file = __DIR__ . '/../../includes/config.php';
     if (!file_exists($config_file)) {
-        throw new Exception("Arquivo de configuração não encontrado: $config_file");
+        throw new Exception("Arquivo de configuração não encontrado.");
     }
     logDebug("Arquivo de configuração encontrado: $config_file");
 
@@ -56,7 +57,7 @@ try {
         logDebug("Conexão com banco de dados testada com sucesso");
     } catch (PDOException $e) {
         logDebug("ERRO na conexão com banco de dados: " . $e->getMessage());
-        throw new Exception("Erro ao conectar com o banco de dados: " . $e->getMessage());
+        throw new Exception("Erro ao conectar com o banco de dados.");
     }
 
     // Pega o tag_id de todas as fontes possíveis
@@ -96,63 +97,63 @@ try {
 
     logDebug("Tag ID final: " . ($tag_id ? $tag_id : 'null'));
 
-    // Se não tem tag_id, busca a última leitura registrada
+    // Se não tem tag_id, a tela de monitoramento está pedindo o estado atual:
+    // última leitura, histórico recente (de todas as tags) e estatísticas do dia
     if (empty($tag_id)) {
         try {
-            // Busca a última leitura registrada
-            $stmt = $conn->prepare("
-                SELECT h.*, a.* 
+            // Última leitura registrada, com os dados do animal (se a tag estiver cadastrada)
+            $stmt = $conn->query("
+                SELECT a.*, h.id AS leitura_id, h.tag_id, h.data_leitura
                 FROM historico_leitura h
                 LEFT JOIN animais a ON h.tag_id = a.tag_id
-                ORDER BY h.data_leitura DESC
+                ORDER BY h.data_leitura DESC, h.id DESC
                 LIMIT 1
             ");
-            $stmt->execute();
             $ultimaLeitura = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($ultimaLeitura) {
-                $tag_id = $ultimaLeitura['tag_id'];
-                logDebug("Última leitura encontrada: " . $tag_id);
-                
-                // Busca o histórico completo para este tag_id
-                $stmt = $conn->prepare("
-                    SELECT h.*, a.identificador 
-                    FROM historico_leitura h
-                    LEFT JOIN animais a ON h.tag_id = a.tag_id
-                    WHERE h.tag_id = ?
-                    ORDER BY h.data_leitura DESC
-                    LIMIT 10
-                ");
-                $stmt->execute([$tag_id]);
-                $historico = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                $response = [
-                    'success' => true,
-                    'message' => 'Última leitura encontrada',
-                    'tag_id' => $tag_id,
-                    'animal' => $ultimaLeitura,
-                    'historico' => $historico
-                ];
-            } else {
-                $response = [
-                    'success' => true,
-                    'message' => 'Aguardando leitura...',
-                    'tag_id' => null,
-                    'animal' => null,
-                    'historico' => []
-                ];
-            }
+
+            // Últimas 10 leituras de qualquer tag
+            $stmt = $conn->query("
+                SELECT h.id, h.tag_id, h.data_leitura, a.identificador
+                FROM historico_leitura h
+                LEFT JOIN animais a ON h.tag_id = a.tag_id
+                ORDER BY h.data_leitura DESC, h.id DESC
+                LIMIT 10
+            ");
+            $historico = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Estatísticas de hoje: total, válidas (tag cadastrada) e inválidas
+            $stmt = $conn->query("
+                SELECT COUNT(*) AS hoje,
+                       COALESCE(SUM(a.id IS NOT NULL), 0) AS validas,
+                       COALESCE(SUM(a.id IS NULL), 0) AS invalidas
+                FROM historico_leitura h
+                LEFT JOIN animais a ON h.tag_id = a.tag_id
+                WHERE DATE(h.data_leitura) = CURDATE()
+            ");
+            $estatisticas = array_map('intval', $stmt->fetch(PDO::FETCH_ASSOC));
+
+            $response = [
+                'success' => true,
+                'message' => $ultimaLeitura ? 'Última leitura encontrada' : 'Aguardando leitura...',
+                'tag_id' => $ultimaLeitura['tag_id'] ?? null,
+                'leitura_id' => $ultimaLeitura['leitura_id'] ?? null,
+                'data_leitura' => $ultimaLeitura['data_leitura'] ?? null,
+                // Tag sem animal cadastrado: devolve só o tag_id, sem animal
+                'animal' => !empty($ultimaLeitura['identificador']) ? $ultimaLeitura : null,
+                'historico' => $historico,
+                'estatisticas' => $estatisticas
+            ];
         } catch (Exception $e) {
             logDebug("Erro ao buscar última leitura: " . $e->getMessage());
             $response = [
-                'success' => true,
-                'message' => 'Aguardando leitura...',
+                'success' => false,
+                'message' => 'Erro ao consultar as leituras.',
                 'tag_id' => null,
                 'animal' => null,
                 'historico' => []
             ];
         }
-        
+
         logDebug("Retornando resposta: " . json_encode($response));
         echo json_encode($response);
         exit;
@@ -221,11 +222,6 @@ try {
 
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage(),
-        'error_details' => [
-            'code' => $e->getCode(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine()
-        ]
+        'message' => $e->getMessage()
     ]);
 }

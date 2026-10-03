@@ -1,17 +1,9 @@
-# Configuração local do banco de dados (contém credenciais)
-includes/config.php
-
-# Logs gerados em runtime
+# Logs gerados em tempo de execução pela API e pelas páginas
+*_log.txt
 *.log
-pages/peso_log.txt
 
-# Arquivos do sistema operacional
+# Arquivos do sistema / editores
 .DS_Store
 Thumbs.db
-
-# Dependências (se usar Composer futuramente)
-vendor/
-
-# Arquivos de ambiente
-.env
-.env.local
+.vscode/
+.idea/

@@ -18,12 +18,10 @@ ARQUIVOS=(
     "esp32_rfid_rastreamento.ino"
     "esp32_rfid_simples.ino"
     "config_esp32.h"
-    "pages/rfid_management.php"
 )
 
 # Padrões para substituir
 PADROES=(
-    "http://192.168.1.100"
     "http://192.168.1.100"
     "http://192.168.0.100"
     "http://192.168.1.1"

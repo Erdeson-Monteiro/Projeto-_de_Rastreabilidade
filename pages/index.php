@@ -1,15 +1,10 @@
 <?php
-session_start();
-
-// Verifica se o usuário está logado
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: /projeto_rastreabilidade/login.php");
-    exit();
-}
+// Só usuários logados acessam esta página
+require_once '../includes/auth.php';
 
 // Carregar config e depois header
-include '../includes/config.php';
-include '../includes/header.php';
+require_once '../includes/config.php';
+require_once '../includes/header.php';
 
 // Consulta ao banco de dados para obter estatísticas
 $stmt = $conn->prepare("SELECT 
@@ -61,6 +56,15 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
   margin-bottom: 10px;
 }
 
+/* Celular: cards em duas colunas, mais compactos */
+@media (max-width: 576px) {
+  .stats-row .card { padding: 1rem !important; }
+  .stats-row h5 { font-size: 0.95rem; }
+  .stats-icon { font-size: 2rem; }
+  .top-banner { padding: 20px 12px; }
+  .top-banner h1 { font-size: 1.4rem; }
+}
+
 /* Seção do gráfico */
 .chart-section {
   border: none;
@@ -76,8 +80,6 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 </style>
 
-<!-- Bootstrap Icons -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
@@ -91,42 +93,42 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 <div class="container my-5">
   <!-- Linha de estatísticas -->
   <div class="row stats-row text-center mb-4">
-    <div class="col-md-3 mb-3">
-      <div class="card p-4">
+    <div class="col-6 col-md-3 mb-3">
+      <div class="card p-4 h-100">
         <i class="bi bi-collection stats-icon text-primary"></i>
         <h5 class="text-muted">Total de Animais</h5>
         <h2 class="text-primary mb-0"><?php echo $stats['total_animais']; ?></h2>
       </div>
     </div>
-    <div class="col-md-3 mb-3">
-      <div class="card p-4">
+    <div class="col-6 col-md-3 mb-3">
+      <div class="card p-4 h-100">
         <i class="bi bi-gender-male stats-icon text-info"></i>
         <h5 class="text-muted">Machos</h5>
         <h2 class="text-info mb-0"><?php echo $stats['total_machos']; ?></h2>
       </div>
     </div>
-    <div class="col-md-3 mb-3">
-      <div class="card p-4">
+    <div class="col-6 col-md-3 mb-3">
+      <div class="card p-4 h-100">
         <i class="bi bi-gender-female stats-icon text-danger"></i>
         <h5 class="text-muted">Fêmeas</h5>
         <h2 class="text-danger mb-0"><?php echo $stats['total_femeas']; ?></h2>
       </div>
     </div>
-    <div class="col-md-3 mb-3">
-      <div class="card p-4">
-        <a href="rfid_management.php" class="text-decoration-none">
+    <div class="col-6 col-md-3 mb-3">
+      <a href="rfid_management.php" class="card p-4 h-100 text-decoration-none">
           <i class="bi bi-rss stats-icon text-success"></i>
           <h5 class="text-muted">Monitoramento RFID</h5>
           <h2 class="text-success mb-0"><i class="bi bi-arrow-right"></i></h2>
-        </a>
-      </div>
+      </a>
     </div>
   </div>
 
   <!-- Gráfico de evolução de peso -->
   <div class="chart-section mb-5">
     <h4>Evolução do Peso dos Animais</h4>
-    <canvas id="pesoChart" height="80"></canvas>
+    <div style="position: relative; height: 320px;">
+      <canvas id="pesoChart"></canvas>
+    </div>
   </div>
 </div>
 
@@ -134,21 +136,17 @@ $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const ctx = document.getElementById('pesoChart').getContext('2d');
-  console.log('Inicializando gráfico...');
 
   // Função para buscar os dados do banco de dados
   async function fetchData() {
     try {
-      console.log('Buscando dados...');
       const response = await fetch('get_media_peso.php');
-      console.log('Resposta recebida:', response.status);
       
       if (!response.ok) {
         throw new Error('Erro ao buscar dados: ' + response.status);
       }
       
       const data = await response.json();
-      console.log('Dados recebidos:', data);
       return data;
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
@@ -158,12 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Função para inicializar o gráfico
   async function initChart() {
-    console.log('Inicializando gráfico...');
     const data = await fetchData();
-    console.log('Dados para o gráfico:', data);
 
     if (data.length === 0) {
-      console.log('Nenhum dado encontrado');
       document.getElementById('pesoChart').style.display = 'none';
       document.querySelector('.chart-section').innerHTML += 
         '<div class="alert alert-info">Nenhum dado de pesagem disponível.</div>';
@@ -173,8 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Extrai as labels (meses) e os valores (média de peso)
     const labels = data.map(item => item.mes);
     const medias = data.map(item => item.media_peso);
-    console.log('Labels:', labels);
-    console.log('Médias:', medias);
 
     // Cria o gráfico
     new Chart(ctx, {
@@ -212,8 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         },
         scales: {
-          y: { 
-            beginAtZero: true,
+          y: {
+            beginAtZero: false, // foca na variação de peso, em vez de achatar a linha
             title: {
               display: true,
               text: 'Peso (kg)'
@@ -228,7 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
-    console.log('Gráfico criado com sucesso');
   }
 
   // Inicializa o gráfico

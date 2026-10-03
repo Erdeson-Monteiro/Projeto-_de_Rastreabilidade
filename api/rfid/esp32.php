@@ -11,16 +11,9 @@ function logMessage($message) {
     $timestamp = date('Y-m-d H:i:s');
     $logMessage = "[$timestamp] $message\n";
     
-    // Verifica se o diretório existe
-    if (!is_dir(__DIR__)) {
-        mkdir(__DIR__, 0777, true);
-    }
-    
-    // Tenta escrever no arquivo
-    if (file_put_contents($logFile, $logMessage, FILE_APPEND) === false) {
-        // Se não conseguir escrever, tenta criar o arquivo
-        file_put_contents($logFile, $logMessage);
-    }
+    // Grava no arquivo de log; se não houver permissão, ignora em silêncio
+    // (um aviso do PHP aqui quebraria o JSON da resposta)
+    @file_put_contents($logFile, $logMessage, FILE_APPEND);
 }
 
 try {
@@ -30,7 +23,7 @@ try {
     // Verifica se o arquivo de configuração existe
     $config_file = __DIR__ . '/../../includes/config.php';
     if (!file_exists($config_file)) {
-        throw new Exception("Arquivo de configuração não encontrado: $config_file");
+        throw new Exception("Arquivo de configuração não encontrado.");
     }
     logMessage("Arquivo de configuração encontrado: $config_file");
 
@@ -97,10 +90,11 @@ try {
     try {
         $conn = new PDO("mysql:host=$servername;port=$port;dbname=$dbname;charset=utf8mb4", $username, $password);
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $conn->exec("SET time_zone = '-03:00'"); // hora local (UTC-3) nas leituras
         logMessage("Conexão com banco de dados estabelecida");
     } catch (PDOException $e) {
         logMessage("Erro na conexão com banco de dados: " . $e->getMessage());
-        throw new Exception("Erro ao conectar com o banco de dados: " . $e->getMessage());
+        throw new Exception("Erro ao conectar com o banco de dados.");
     }
 
     // Busca informações do animal
@@ -118,7 +112,7 @@ try {
         logMessage("Animal buscado: " . ($animal ? "encontrado" : "não encontrado"));
     } catch (PDOException $e) {
         logMessage("Erro ao buscar animal: " . $e->getMessage());
-        throw new Exception("Erro ao buscar informações do animal: " . $e->getMessage());
+        throw new Exception("Erro ao buscar informações do animal.");
     }
 
     // Busca histórico de leituras
@@ -136,7 +130,7 @@ try {
         logMessage("Histórico de leituras obtido: " . count($historico) . " registros");
     } catch (PDOException $e) {
         logMessage("Erro ao buscar histórico: " . $e->getMessage());
-        throw new Exception("Erro ao buscar histórico de leituras: " . $e->getMessage());
+        throw new Exception("Erro ao buscar histórico de leituras.");
     }
 
     // Registra a nova leitura
@@ -149,7 +143,7 @@ try {
         logMessage("Nova leitura registrada com sucesso");
     } catch (PDOException $e) {
         logMessage("Erro ao registrar leitura: " . $e->getMessage());
-        throw new Exception("Erro ao registrar nova leitura: " . $e->getMessage());
+        throw new Exception("Erro ao registrar nova leitura.");
     }
 
     // Prepara a resposta

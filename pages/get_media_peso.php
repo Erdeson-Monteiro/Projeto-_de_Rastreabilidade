@@ -1,13 +1,16 @@
 <?php
+// Média de peso por mês, usada no gráfico do Dashboard (retorna JSON)
 session_start();
+header('Content-Type: application/json');
 
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: /projeto_rastreabilidade/login.php");
+// Sem login: responde 401 em JSON (é uma chamada via fetch, não uma página)
+if (empty($_SESSION['logged_in'])) {
+    http_response_code(401);
+    echo json_encode([]);
     exit();
 }
 
-include '../includes/config.php';
-header('Content-Type: application/json');
+require_once '../includes/config.php';
 
 try {
     $stmt = $conn->prepare("
@@ -17,7 +20,7 @@ try {
             COUNT(*) as total_pesagens
         FROM pesagem
         GROUP BY DATE_FORMAT(data, '%Y-%m')
-        ORDER BY mes DESC
+        ORDER BY DATE_FORMAT(data, '%Y-%m') DESC
         LIMIT 12
     ");
     $stmt->execute();

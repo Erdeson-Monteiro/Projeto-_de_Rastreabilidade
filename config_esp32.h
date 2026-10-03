@@ -45,6 +45,7 @@ const char* SERVER_URL = "http://192.168.1.100/projeto_rastreabilidade/api/rfid/
 // CONFIGURAÇÕES DE COMPORTAMENTO
 // ========================================
 #define READ_INTERVAL_MS       2000    // Intervalo mínimo entre leituras (2 segundos)
+#define SAME_TAG_INTERVAL      10000   // Mesma tag só é registrada de novo após 10 segundos
 #define MAX_RECONNECT_ATTEMPTS 10      // Máximo de tentativas de reconexão WiFi
 #define WIFI_TIMEOUT_MS        10000   // Timeout para conexão WiFi (10 segundos)
 #define DISPLAY_TIMEOUT_MS     3000    // Tempo que a mensagem fica no display (3 segundos)

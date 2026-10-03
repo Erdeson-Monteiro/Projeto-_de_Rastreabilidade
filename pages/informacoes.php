@@ -1,13 +1,15 @@
 <?php
 // informacoes.php
-include '../includes/header.php';
-include '../includes/config.php';
+// Só usuários logados acessam esta página
+require_once '../includes/auth.php';
+
+require_once '../includes/header.php';
+require_once '../includes/config.php';
 
 // Verifica se um ID foi passado
 $id_animal = isset($_GET['id']) ? (int) $_GET['id'] : null;
 ?>
 
-<!-- Estilos omitidos para foco na lógica -->
 
 <?php
 // Se não há ID, exibe a listagem paginada
@@ -25,10 +27,12 @@ if (!$id_animal) {
 
     // Quantidade de páginas
     $pages = ($total > 0) ? ceil($total / $limit) : 1;
+    if ($page > $pages) $page = $pages;
+    $start = ($page - 1) * $limit;
 
     // Consulta paginada (usando bindValue em vez de bindParam para LIMIT)
     $stmt = $conn->prepare("
-        SELECT id, data_nascimento, genero, raca, pai_id, mae_id, peso
+        SELECT id, identificador, tag_id, data_nascimento, genero, raca, pai_id, mae_id, peso
         FROM animais
         ORDER BY id DESC
         LIMIT :start, :limit
@@ -47,7 +51,9 @@ if (!$id_animal) {
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Data Nascimento</th>
+                            <th>Identificador</th>
+                            <th>Tag RFID</th>
+                            <th>Nascimento</th>
                             <th>Sexo</th>
                             <th>Raça</th>
                             <th>Pai (ID)</th>
@@ -60,15 +66,20 @@ if (!$id_animal) {
                         <?php foreach ($result as $row): ?>
                             <tr>
                                 <td><?= $row['id'] ?></td>
+                                <td class="fw-semibold"><?= htmlspecialchars($row['identificador']) ?></td>
+                                <td><?= $row['tag_id'] ? htmlspecialchars($row['tag_id']) : '<span class="text-muted">---</span>' ?></td>
                                 <td><?= date('d/m/Y', strtotime($row['data_nascimento'])) ?></td>
                                 <td><?= ($row['genero'] === 'M') ? 'Macho' : 'Fêmea' ?></td>
-                                <td><?= $row['raca'] ?></td>
-                                <td><?= $row['pai_id'] ?: '---' ?></td>
-                                <td><?= $row['mae_id'] ?: '---' ?></td>
+                                <td><?= htmlspecialchars($row['raca']) ?></td>
+                                <td><?= $row['pai_id'] ? htmlspecialchars($row['pai_id']) : '---' ?></td>
+                                <td><?= $row['mae_id'] ? htmlspecialchars($row['mae_id']) : '---' ?></td>
                                 <td><?= $row['peso'] ?></td>
-                                <td class="text-center">
+                                <td class="text-center text-nowrap">
                                     <a href="?id=<?= $row['id'] ?>" class="btn btn-sm btn-primary">
                                         <i class="bi bi-eye"></i> Ver
+                                    </a>
+                                    <a href="atualizar.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-outline-secondary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
                                     </a>
                                 </td>
                             </tr>
@@ -77,9 +88,27 @@ if (!$id_animal) {
                 </table>
             </div>
 
-            <!-- Paginação omitida por clareza -->
+            <?php if ($pages > 1): ?>
+            <nav aria-label="Paginação">
+                <ul class="pagination justify-content-center mt-3">
+                    <li class="page-item<?= $page <= 1 ? ' disabled' : '' ?>">
+                        <a class="page-link" href="?page=<?= $page - 1 ?>">Anterior</a>
+                    </li>
+                    <?php for ($i = 1; $i <= $pages; $i++): ?>
+                        <li class="page-item<?= $i == $page ? ' active' : '' ?>">
+                            <a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a>
+                        </li>
+                    <?php endfor; ?>
+                    <li class="page-item<?= $page >= $pages ? ' disabled' : '' ?>">
+                        <a class="page-link" href="?page=<?= $page + 1 ?>">Próxima</a>
+                    </li>
+                </ul>
+            </nav>
+            <?php endif; ?>
         <?php else: ?>
-            <div class="alert alert-info text-center">Nenhum animal cadastrado ainda.</div>
+            <div class="alert alert-info text-center">
+                Nenhum animal cadastrado ainda. <a href="cadastro.php">Cadastrar o primeiro</a>
+            </div>
         <?php endif; ?>
     </div>
 
@@ -96,13 +125,13 @@ $animal = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Se não encontrar o animal, exibe alerta
 if (!$animal) {
-    echo "<div class='container mt-5 alert alert-warning text-center'>Animal não encontrado.</div>";
+    echo "<div class='alert alert-warning text-center'>Animal não encontrado.</div>";
     include '../includes/footer.php';
     exit;
 }
 
 // Consulta histórico de pesagem
-$peso_stmt = $conn->prepare("SELECT data, peso FROM pesagem WHERE animal_id = :animal_id ORDER BY data DESC");
+$peso_stmt = $conn->prepare("SELECT id, data, peso FROM pesagem WHERE animal_id = :animal_id ORDER BY data DESC, id DESC");
 $peso_stmt->bindParam(':animal_id', $id_animal, PDO::PARAM_INT);
 $peso_stmt->execute();
 $peso_result = $peso_stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -125,12 +154,18 @@ $vacina_result = $vacina_stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="card-body">
                     <h4 class="text-primary">Dados Cadastrais</h4>
                     <p><strong>ID:</strong> <?= $animal['id'] ?></p>
+                    <p><strong>Identificador:</strong> <?= htmlspecialchars($animal['identificador']) ?></p>
+                    <p><strong>Tag RFID:</strong> <?= $animal['tag_id'] ? htmlspecialchars($animal['tag_id']) : 'Não vinculada' ?></p>
                     <p><strong>Nascimento:</strong> <?= date('d/m/Y', strtotime($animal['data_nascimento'])) ?></p>
                     <p><strong>Sexo:</strong> <?= ($animal['genero'] == 'M') ? 'Macho' : 'Fêmea' ?></p>
-                    <p><strong>Raça:</strong> <?= $animal['raca'] ?></p>
-                    <p><strong>Pai:</strong> <?= $animal['pai_id'] ?: 'Desconhecido' ?></p>
-                    <p><strong>Mãe:</strong> <?= $animal['mae_id'] ?: 'Desconhecida' ?></p>
-                    <p><strong>Peso (Kg):</strong> <?= $animal['peso'] ?></p>
+                    <p><strong>Raça:</strong> <?= htmlspecialchars($animal['raca']) ?></p>
+                    <p><strong>Pai:</strong> <?= $animal['pai_id'] ? htmlspecialchars($animal['pai_id']) : 'Desconhecido' ?></p>
+                    <p><strong>Mãe:</strong> <?= $animal['mae_id'] ? htmlspecialchars($animal['mae_id']) : 'Desconhecida' ?></p>
+                    <p><strong>Peso inicial (Kg):</strong> <?= $animal['peso'] ?></p>
+                    <?php if (count($peso_result) > 0): ?>
+                        <p><strong>Último peso (Kg):</strong> <?= $peso_result[0]['peso'] ?>
+                            <span class="text-muted small">em <?= date('d/m/Y', strtotime($peso_result[0]['data'])) ?></span></p>
+                    <?php endif; ?>
 
                     <hr>
                     <h4 class="text-primary">Histórico de Pesagem</h4>
@@ -152,13 +187,25 @@ $vacina_result = $vacina_stmt->fetchAll(PDO::FETCH_ASSOC);
                         <ul class="list-group">
                             <?php foreach ($vacina_result as $vacina): ?>
                                 <li class="list-group-item">
-                                    <?= date('d/m/Y', strtotime($vacina['data'])) ?> - <?= $vacina['vacina'] ?>
+                                    <?= date('d/m/Y', strtotime($vacina['data'])) ?> - <?= htmlspecialchars($vacina['vacina']) ?>
                                 </li>
                             <?php endforeach; ?>
                         </ul>
                     <?php else: ?>
                         <div class="text-muted">Nenhum registro de vacinação encontrado.</div>
                     <?php endif; ?>
+
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mt-4">
+                        <a href="atualizar.php?id=<?= $animal['id'] ?>" class="btn btn-primary">
+                            <i class="bi bi-pencil-square"></i> Editar
+                        </a>
+                        <a href="pesagem.php?identificador=<?= urlencode($animal['identificador']) ?>" class="btn btn-outline-secondary">
+                            <i class="bi bi-bar-chart"></i> Nova pesagem
+                        </a>
+                        <a href="vacinas.php?identificador=<?= urlencode($animal['identificador']) ?>" class="btn btn-outline-secondary">
+                            <i class="bi bi-eyedropper"></i> Nova vacina
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,18 +1,13 @@
 <?php
-session_start();
+// Só usuários logados acessam esta página
+require_once '../includes/auth.php';
 
-// Verifica se o usuário está logado
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: /projeto_rastreabilidade/login.php");
-    exit();
-}
-
-include '../includes/header.php';
-include '../includes/config.php';
+require_once '../includes/header.php';
+require_once '../includes/config.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     try {
-        $identificador = $_POST['identificador'];
+        $identificador = trim($_POST['identificador']);
         $vacina = $_POST['vacina'];
         $data = $_POST['data'];
         
@@ -35,39 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
     } catch (PDOException $e) {
-        echo "<div class='alert alert-danger text-center mt-3'>Erro: " . $e->getMessage() . "</div>";
+        error_log($e->getMessage());
+        echo "<div class='alert alert-danger text-center mt-3'>Não foi possível salvar. Tente novamente.</div>";
     }
 }
 ?>
-
-<style>
-/* Estilos para a página de vacinas */
-.card-custom {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
-  transition: 0.3s;
-}
-
-.card-custom:hover {
-  transform: translateY(-3px);
-}
-
-.card-header-custom {
-  background-color: #34699A;
-  color: #fff;
-  border-radius: 12px 12px 0 0;
-}
-
-.btn-primary {
-  background-color: #34699A;
-  border-color: #34699A;
-}
-.btn-primary:hover {
-  background-color: #285071;
-  border-color: #285071;
-}
-</style>
 
 <div class="container my-5">
     <div class="row justify-content-center">
@@ -80,15 +47,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <form method="post">
                         <div class="mb-3">
                             <label for="identificador" class="form-label">Número do Identificador</label>
-                            <input type="text" name="identificador" class="form-control" required>
+                            <input type="text" id="identificador" name="identificador" class="form-control" value="<?= htmlspecialchars($_GET['identificador'] ?? '') ?>" placeholder="Ex: BOI-001" required>
+                            <small class="text-muted">Veja os identificadores na <a href="informacoes.php">lista de animais</a>.</small>
                         </div>
                         <div class="mb-3">
                             <label for="vacina" class="form-label">Nome da Vacina</label>
-                            <input type="text" name="vacina" class="form-control" required>
+                            <input type="text" id="vacina" name="vacina" class="form-control" placeholder="Ex: Febre aftosa" required>
                         </div>
                         <div class="mb-3">
                             <label for="data" class="form-label">Data da Aplicação</label>
-                            <input type="date" name="data" class="form-control" required>
+                            <input type="date" id="data" name="data" class="form-control" value="<?= date('Y-m-d') ?>" required>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Registrar Vacinação</button>
                     </form>

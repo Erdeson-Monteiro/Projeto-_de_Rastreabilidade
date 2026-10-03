@@ -1,0 +1,34 @@
+# Sobe o sistema completo com: docker compose up -d
+# Acesse: http://localhost:8080  (login: usuario@exemplo.com / senha123)
+name: ifmabov
+
+services:
+  db:
+    image: mariadb:11
+    environment:
+      # Senha só deste banco local de desenvolvimento (a porta não fica exposta)
+      MARIADB_ROOT_PASSWORD: root
+      TZ: America/Fortaleza
+    volumes:
+      - dados:/var/lib/mysql
+      - ./db/database.sql:/docker-entrypoint-initdb.d/01-database.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 20
+
+  web:
+    build: ./docker
+    ports:
+      - "8080:80"
+    environment:
+      DB_HOST: db
+      DB_PASSWORD: root
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./:/var/www/html/projeto_rastreabilidade
+
+volumes:
+  dados:

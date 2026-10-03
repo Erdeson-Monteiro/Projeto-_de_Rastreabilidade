@@ -1,7 +1,8 @@
 // scripts.js
 
 document.addEventListener("DOMContentLoaded", function() {
-    const alerts = document.querySelectorAll(".alert");
+    // Some apenas com as mensagens de sucesso; avisos e erros continuam visíveis
+    const alerts = document.querySelectorAll(".alert-success");
     alerts.forEach(alert => {
         setTimeout(() => {
             alert.style.opacity = "0";
@@ -9,17 +10,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }, 3000);
     });
 
-    // Efeito hover suave nos botões
-    const buttons = document.querySelectorAll(".btn");
-    buttons.forEach(button => {
-        button.addEventListener("mouseenter", () => {
-            button.style.transform = "scale(1.05)";
-            button.style.transition = "all 0.3s ease-in-out";
-        });
-        button.addEventListener("mouseleave", () => {
-            button.style.transform = "scale(1)";
-        });
-    });
+    // O efeito hover dos botões fica no styles.css (.btn:hover)
 
     // Animação suave para carregamento de elementos
     const fadeElements = document.querySelectorAll(".fade-in");
@@ -35,9 +26,9 @@ document.addEventListener("DOMContentLoaded", function() {
     window.addEventListener("scroll", function() {
         let navbar = document.querySelector(".navbar");
         if (window.scrollY > 50) {
-            navbar.style.backgroundColor = "#0056b3";
+            navbar.style.backgroundColor = "#2a5580";
         } else {
-            navbar.style.backgroundColor = "#007bff";
+            navbar.style.backgroundColor = "#34699A";
         }
     });
 });

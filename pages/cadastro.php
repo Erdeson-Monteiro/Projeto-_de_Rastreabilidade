@@ -1,15 +1,10 @@
 <?php
-session_start();
-// Verifica se o usuário não está logado
-if (!isset($_SESSION['logged_in'])) {
-    // Redireciona para a página de login
-    header("Location: ../login.php");
-    exit();
-}
+// Só usuários logados acessam esta página
+require_once '../includes/auth.php';
 
 // Carregar config e depois header
-include '../includes/config.php';
-include '../includes/header.php';
+require_once '../includes/config.php';
+require_once '../includes/header.php';
 
 // Processa o formulário quando enviado
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -19,10 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nascimento = $_POST['nascimento'] ?? '';
         $sexo = $_POST['sexo'] ?? '';
         $raca = $_POST['raca'] ?? '';
-        $pai = $_POST['pai'] ?? null;
-        $mae = $_POST['mae'] ?? null;
+        $pai = !empty($_POST['pai']) ? trim($_POST['pai']) : null;
+        $mae = !empty($_POST['mae']) ? trim($_POST['mae']) : null;
         $peso = !empty($_POST['peso']) ? (float) str_replace(',', '.', $_POST['peso']) : 0;
-        $tag_id = $_POST['tag_id'] ?? null;
+        // Tag vazia vira NULL: a coluna é UNIQUE e duas tags "" dariam conflito
+        $tag_id = !empty($_POST['tag_id']) ? strtoupper(trim($_POST['tag_id'])) : null;
 
         // Validações
         if (empty($identificador)) {
@@ -49,51 +45,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$identificador, $nascimento, $sexo, $raca, $pai, $mae, $peso, $tag_id]);
 
         echo "<div class='alert alert-success text-center mt-3'>Cadastro registrado com sucesso!</div>";
+    } catch (PDOException $e) {
+        $mensagem = $e->getCode() == 23000
+            ? "Esta tag RFID já está vinculada a outro animal."
+            : "Não foi possível salvar. Tente novamente.";
+        echo "<div class='alert alert-danger text-center mt-3'>Erro ao registrar o animal: " . htmlspecialchars($mensagem) . "</div>";
     } catch (Exception $e) {
-        echo "<div class='alert alert-danger text-center mt-3'>Erro ao registrar o animal: " . $e->getMessage() . "</div>";
+        echo "<div class='alert alert-danger text-center mt-3'>Erro ao registrar o animal: " . htmlspecialchars($e->getMessage()) . "</div>";
     }
 }
 ?>
 
 <style>
-/* Estilos específicos para a página de cadastro */
-.card-header-custom {
-  background-color: #34699A;
-  color: #fff;
-  border-radius: 12px 12px 0 0;
-}
-
-.card-custom {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
-  margin-bottom: 20px;
-}
-
-.card-custom:hover {
-  transform: translateY(-3px);
-}
-
-.btn-primary {
-  background-color: #34699A;
-  border-color: #34699A;
-}
-
-.btn-primary:hover {
-  background-color: #285071;
-  border-color: #285071;
-}
-
 /* Estilo específico para o campo de peso */
 .peso-container {
   margin-bottom: 15px;
-}
-
-.peso-container input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
 }
 
 .peso-container small {
@@ -111,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <h2 class="mb-0">Cadastro de Animal</h2>
                 </div>
                 <div class="card-body">
-                    <form method="POST" class="needs-validation" novalidate>
+                    <form method="POST">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="identificador" class="form-label">Identificador</label>
@@ -120,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             
                             <div class="col-md-6 mb-3">
                                 <label for="nascimento" class="form-label">Data de Nascimento</label>
-                                <input type="date" class="form-control" id="nascimento" name="nascimento" required>
+                                <input type="date" class="form-control" id="nascimento" name="nascimento" max="<?= date('Y-m-d') ?>" required>
                             </div>
                         </div>
 
@@ -156,14 +122,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="col-md-6 mb-3">
                                 <div class="peso-container">
                                     <label for="peso" class="form-label">Peso (kg)</label>
-                                    <input type="number" step="0.01" class="form-control" id="peso" name="peso" required min="0.01">
+                                    <input type="number" step="0.01" class="form-control" id="peso" name="peso" required min="0.01" max="9999.99">
                                     <small>Use ponto (.) como separador decimal</small>
                                 </div>
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="tag_id" class="form-label">Tag RFID (opcional)</label>
-                                <input type="text" class="form-control" id="tag_id" name="tag_id" placeholder="Ex: 770EA45F">
+                                <label for="tag_id" class="form-label">
+                                    Tag RFID (opcional)
+                                    <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#rfidHelpModal" title="Sobre as tags RFID">
+                                        <i class="bi bi-question-circle"></i>
+                                    </a>
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="tag_id" name="tag_id" placeholder="Ex: 770EA45F">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="gerarTagAleatoria()">Gerar</button>
+                                </div>
                                 <small class="text-muted">Pode ser registrado posteriormente</small>
                             </div>
                         </div>
