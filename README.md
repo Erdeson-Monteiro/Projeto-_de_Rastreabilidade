@@ -121,6 +121,7 @@ Acesse **http://localhost:8080**. O banco já é criado com dados de exemplo.
    ```bash
    ./atualizar_ip.sh 192.168.0.42
    ```
+   Rodando com **Docker**, o sistema fica na porta 8080, então inclua a porta: `./atualizar_ip.sh 192.168.0.42:8080`.
 6. Envie para o ESP32 e acompanhe pelo Monitor Serial (115200 baud). Ao aproximar uma tag, aparece `Tag lida: A1B2C3D4` e a leitura surge na tela **RFID** do sistema.
 
 Sem o hardware em mãos, dá para simular uma leitura:
@@ -174,9 +175,19 @@ Banco `ifmabov` com as tabelas:
 
 ## 🔭 Próximos passos
 
+O sistema foi pensado para rodar em uma rede local (fazenda ou laboratório). Para publicá-lo na internet e evoluir o projeto, os próximos passos são:
+
+**Segurança para uso na internet**
+- HTTPS (certificado TLS) no servidor e no envio do ESP32
+- Proteção contra CSRF nos formulários
+- Chave de acesso (token) na API que recebe as leituras do ESP32
+- Limite de tentativas de login
+
+**Funcionalidades**
 - Cadastro e gerenciamento de usuários pela interface
 - Relatórios exportáveis (PDF/planilha)
-- Leitura offline no ESP32 com envio posterior
+- Alertas de vacinação vencida e de perda de peso
+- Leitura offline no ESP32, com envio das leituras guardadas quando o WiFi voltar
 
 ## 👤 Autor
 
